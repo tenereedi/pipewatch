@@ -1,0 +1,27 @@
+pipelines:
+  - name: orders_etl
+    source: postgres
+    interval_seconds: 120
+    thresholds:
+      max_lag_seconds: 300
+      min_rows_per_run: 10
+    alerts:
+      - slack
+      - email
+
+  - name: analytics_sync
+    source: bigquery
+    interval_seconds: 300
+    thresholds:
+      max_lag_seconds: 600
+    alerts:
+      - slack
+
+  - name: user_events_stream
+    source: kafka
+    interval_seconds: 30
+    thresholds:
+      max_lag_seconds: 60
+      min_rows_per_run: 100
+    alerts:
+      - pagerduty
