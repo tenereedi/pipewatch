@@ -1,12 +1,17 @@
-"""CLI entry point for pipewatch."""
+"""Entry point for the pipewatch CLI."""
+from __future__ import annotations
 
-import sys
-import logging
 import argparse
+import sys
 
 from pipewatch.config import load
 from pipewatch.runner import run_and_report
-from pipewatch.scheduler import PipelineScheduler
+from pipewatch.cli_history import add_history_subcommand, handle_history
+from pipewatch.cli_trending import add_trending_subcommand, handle_trending
+from pipewatch.cli_baseline import add_baseline_subcommand, handle_baseline
+from pipewatch.cli_retention import add_retention_subcommand, handle_retention
+from pipewatch.cli_silencer import add_silencer_subcommand, handle_silence
+from pipewatch.cli_snapshot import add_snapshot_subcommand, handle_snapshot
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -15,54 +20,59 @@ def build_parser() -> argparse.ArgumentParser:
         description="Monitor and alert on data pipeline health.",
     )
     parser.add_argument(
-        "-c", "--config",
-        default="pipewatch.yaml",
-        help="Path to YAML config file (default: pipewatch.yaml)",
+        "--config",
+        default="pipewatch/example_config.yaml",
+        help="Path to YAML config file",
     )
     parser.add_argument(
-        "--interval",
-        type=int,
-        default=None,
-        metavar="SECONDS",
-        help="Run checks repeatedly on this interval. Omit for a single run.",
+        "--db",
+        default="pipewatch_history.db",
+        help="Path to SQLite history database",
     )
     parser.add_argument(
-        "--verbose", "-v",
+        "--no-save",
         action="store_true",
-        help="Enable debug logging.",
+        help="Skip saving results to history",
     )
+
+    subparsers = parser.add_subparsers(dest="command")
+    add_history_subcommand(subparsers)
+    add_trending_subcommand(subparsers)
+    add_baseline_subcommand(subparsers)
+    add_retention_subcommand(subparsers)
+    add_silencer_subcommand(subparsers)
+    add_snapshot_subcommand(subparsers)
+
     return parser
 
 
-def main(argv=None) -> int:
+def main(argv: list[str] | None = None) -> None:
     parser = build_parser()
     args = parser.parse_args(argv)
 
-    logging.basicConfig(
-        level=logging.DEBUG if args.verbose else logging.WARNING,
-        format="%(levelname)s %(name)s: %(message)s",
-    )
+    if args.command == "history":
+        handle_history(args)
+        return
+    if args.command == "trending":
+        handle_trending(args)
+        return
+    if args.command == "baseline":
+        handle_baseline(args)
+        return
+    if args.command == "retention":
+        handle_retention(args)
+        return
+    if args.command == "silence":
+        handle_silence(args)
+        return
+    if args.command == "snapshot":
+        handle_snapshot(args)
+        return
 
-    try:
-        config = load(args.config)
-    except FileNotFoundError:
-        print(f"[pipewatch] Config file not found: {args.config}", file=sys.stderr)
-        return 2
-    except Exception as exc:  # noqa: BLE001
-        print(f"[pipewatch] Failed to load config: {exc}", file=sys.stderr)
-        return 2
-
-    if args.interval:
-        scheduler = PipelineScheduler(
-            interval_seconds=args.interval,
-            check_fn=lambda: run_and_report(config),
-        )
-        scheduler.start()
-        return 0
-    else:
-        all_healthy = run_and_report(config)
-        return 0 if all_healthy else 1
+    cfg = load(args.config)
+    ok = run_and_report(cfg, db_path=args.db, save=(not args.no_save))
+    sys.exit(0 if ok else 1)
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
