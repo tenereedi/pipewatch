@@ -52,3 +52,12 @@ def test_handle_trending_custom_threshold(tmp_db, capsys):
     save_results(tmp_db, [_r("p", False)] * 3 + [_r("p", True)] * 7)
     assert handle_trending(_args(tmp_db, pipeline="p", threshold=0.4)) == 0
     assert handle_trending(_args(tmp_db, pipeline="p", threshold=0.2)) == 1
+
+
+def test_handle_trending_all_failures(tmp_db, capsys):
+    """A pipeline with 100% failures should always trend down regardless of threshold."""
+    save_results(tmp_db, [_r("always_down", False)] * 10)
+    code = handle_trending(_args(tmp_db, pipeline="always_down", threshold=0.9))
+    assert code == 1
+    out = capsys.readouterr().out
+    assert "TRENDING DOWN" in out or "trending down" in out
