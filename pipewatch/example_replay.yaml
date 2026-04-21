@@ -1,0 +1,30 @@
+# Example configuration showing how to use pipewatch replay
+#
+# The 'replay' CLI subcommand lets you review historical check results
+# stored in the pipewatch history database.
+#
+# Usage examples:
+#
+#   # Replay the last 50 results for a single pipeline
+#   pipewatch replay my_pipeline
+#
+#   # Replay with a custom result limit
+#   pipewatch replay my_pipeline --limit 20
+#
+#   # Replay multiple pipelines at once
+#   pipewatch replay pipeline_a pipeline_b pipeline_c
+#
+#   # Use a custom database path
+#   pipewatch replay my_pipeline --db /var/data/pipewatch.db
+#
+# Output format:
+#   [pipeline_name] Replayed N result(s): X healthy, Y failed (Z% success rate)
+#     [OK]   check_name: message (ts=<timestamp>)
+#     [FAIL] check_name: message (ts=<timestamp>)
+#
+# The replay window is read-only — it does not re-execute checks.
+# It reads directly from the history database populated by 'pipewatch run'.
+
+replay:
+  default_limit: 50
+  default_db: pipewatch_history.db
