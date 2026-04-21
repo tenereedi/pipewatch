@@ -64,3 +64,15 @@ def test_run_and_report_unhealthy_returns_false():
          patch("pipewatch.runner.dispatch_alerts"):
         ok = run_and_report(config)
     assert ok is False
+
+
+def test_run_and_report_dispatches_alerts_with_results():
+    """Verify that dispatch_alerts is called with the full results list."""
+    config = _make_config(alerts={"slack": "https://hooks.example.com/abc"})
+    bad_result = CheckResult(pipeline="p", check="http", healthy=False, message="fail")
+    with patch("pipewatch.runner.run_all_checks", return_value=[bad_result]), \
+         patch("pipewatch.runner.print_results"), \
+         patch("pipewatch.runner.print_summary"), \
+         patch("pipewatch.runner.dispatch_alerts") as mock_dispatch:
+        run_and_report(config)
+    mock_dispatch.assert_called_once_with(config.alerts, [bad_result])
