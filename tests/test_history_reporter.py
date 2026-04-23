@@ -56,3 +56,14 @@ def test_history_summary_counts(tmp_db):
 def test_history_summary_empty(tmp_db):
     summary = history_summary(db_path=tmp_db)
     assert summary == {"total": 0, "passed": 0, "failed": 0}
+
+
+def test_history_summary_per_pipeline(tmp_db):
+    """Summary counts should reflect only the specified pipeline when filtered."""
+    _save(tmp_db, pipeline="pipe_a", healthy=True)
+    _save(tmp_db, pipeline="pipe_a", healthy=False)
+    _save(tmp_db, pipeline="pipe_b", healthy=True)
+    summary = history_summary(pipeline="pipe_a", db_path=tmp_db)
+    assert summary["total"] == 2
+    assert summary["passed"] == 1
+    assert summary["failed"] == 1
