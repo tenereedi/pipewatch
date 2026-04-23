@@ -51,6 +51,17 @@ def test_compute_baseline_degraded(tmp_db):
     assert "DEGRADED" in str(report)
 
 
+def test_compute_baseline_not_degraded_within_threshold(tmp_db):
+    """A pipeline with a small drop in success rate should not be flagged as degraded."""
+    # 95 healthy, 5 unhealthy — current window has 1 failure out of 20
+    save_results(tmp_db, [_r("pipe_e", False)] * 1)
+    save_results(tmp_db, [_r("pipe_e", True)] * 99)
+    report = compute_baseline("pipe_e", tmp_db, baseline_window=100, current_window=20)
+    assert report is not None
+    # With threshold=0.10, a ~5% drop should not be considered degraded
+    assert not report.is_degraded(threshold=0.10)
+
+
 def test_check_all_baselines_filters_missing(tmp_db):
     _populate(tmp_db, "pipe_c", 100, 0)
     reports = check_all_baselines(["pipe_c", "nonexistent"], tmp_db)
