@@ -76,6 +76,29 @@ def test_compute_correlations_detects_pair(tmp_db):
     assert pairs[0].co_failure_count == 1
 
 
+def test_compute_correlations_min_rate_filters_results(tmp_db):
+    """Pairs below min_rate threshold should be excluded from results."""
+    ts1 = "2024-01-01 10:00:00"
+    ts2 = "2024-01-01 10:01:00"
+    # alpha and beta co-fail once out of two windows (50% rate)
+    _populate(
+        tmp_db,
+        [
+            _r("alpha", False, ts1),
+            _r("beta", False, ts1),
+            _r("alpha", False, ts2),
+            _r("beta", True, ts2),
+        ],
+    )
+    # With a high threshold, the pair should be excluded
+    pairs_strict = compute_correlations(tmp_db, min_rate=0.9)
+    assert pairs_strict == []
+
+    # With a lower threshold, the pair should be included
+    pairs_lenient = compute_correlations(tmp_db, min_rate=0.3)
+    assert len(pairs_lenient) == 1
+
+
 def test_co_failure_rate_calculation():
     p = CorrelationPair("a", "b", co_failure_count=3, total_windows=4)
     assert p.co_failure_rate == pytest.approx(0.75)
