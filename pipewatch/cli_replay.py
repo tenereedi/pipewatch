@@ -34,13 +34,25 @@ def add_replay_subcommand(subparsers: argparse._SubParsersAction) -> None:  # ty
 
 
 def handle_replay(args: argparse.Namespace) -> None:
+    """Handle the 'replay' subcommand.
+
+    Loads historical check results for the specified pipelines from the
+    database and prints a summary followed by individual result details.
+    """
     pipelines: List[str] = args.pipelines
 
     if not pipelines:
         print("No pipelines specified. Pass pipeline names as arguments.")
         return
 
-    windows = replay_all(args.db, pipelines, limit=args.limit)
+    try:
+        windows = replay_all(args.db, pipelines, limit=args.limit)
+    except FileNotFoundError:
+        print(f"Error: Database file not found: {args.db}")
+        return
+    except Exception as exc:  # noqa: BLE001
+        print(f"Error loading replay data: {exc}")
+        return
 
     for window in windows:
         print(replay_summary(window))
