@@ -1,0 +1,29 @@
+# Example configuration for check-budget enforcement
+# Prevents runaway checks from overwhelming downstream systems.
+
+# How many checks are allowed per pipeline within the window.
+budget:
+  max_checks: 100        # Maximum check firings allowed
+  window_seconds: 3600   # Rolling window (1 hour)
+
+# Pipelines to evaluate
+pipelines:
+  - name: orders_pipeline
+    url: https://api.example.com/health/orders
+    freshness_seconds: 300
+
+  - name: inventory_pipeline
+    url: https://api.example.com/health/inventory
+    freshness_seconds: 600
+
+  - name: analytics_pipeline
+    url: https://api.example.com/health/analytics
+    freshness_seconds: 900
+
+# Usage:
+#   pipewatch budget record orders_pipeline --db budget.db
+#   pipewatch budget check orders_pipeline inventory_pipeline \
+#       --max-checks 100 --window 3600 --db budget.db
+#
+# If a pipeline exceeds its check budget the command exits non-zero,
+# allowing CI/CD pipelines or cron jobs to react accordingly.
