@@ -34,18 +34,34 @@ class SuppressionConfig:
 
     @staticmethod
     def from_file(path: str) -> "SuppressionConfig":
-        """Load suppression rules from a JSON file."""
+        """Load suppression rules from a JSON file.
+
+        Returns an empty SuppressionConfig if the file does not exist.
+        Raises ``ValueError`` if the file contains invalid JSON or if the
+        top-level ``rules`` value is not a list.
+        """
         if not os.path.exists(path):
             return SuppressionConfig()
         with open(path, "r") as fh:
-            data = json.load(fh)
+            try:
+                data = json.load(fh)
+            except json.JSONDecodeError as exc:
+                raise ValueError(
+                    f"Suppression config file '{path}' contains invalid JSON: {exc}"
+                ) from exc
+        raw_rules = data.get("rules", [])
+        if not isinstance(raw_rules, list):
+            raise ValueError(
+                f"Suppression config file '{path}': 'rules' must be a list, "
+                f"got {type(raw_rules).__name__}"
+            )
         rules = [
             SuppressionRule(
                 pipeline_pattern=r.get("pipeline_pattern", "*"),
                 tags=r.get("tags", []),
                 reason=r.get("reason", ""),
             )
-            for r in data.get("rules", [])
+            for r in raw_rules
         ]
         return SuppressionConfig(rules=rules)
 
