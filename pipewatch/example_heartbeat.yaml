@@ -1,0 +1,33 @@
+# Example configuration for pipewatch heartbeat monitoring
+#
+# Pipelines are expected to call `pipewatch heartbeat record <name>` on each
+# successful run.  The CLI command `pipewatch heartbeat check` can then be
+# invoked from a cron job or monitoring system to verify liveness.
+
+heartbeats:
+  # Each entry names a pipeline and the maximum acceptable silence window.
+  - pipeline: ingest_raw_events
+    threshold_seconds: 300      # alert if no heartbeat within 5 minutes
+
+  - pipeline: transform_daily_aggregates
+    threshold_seconds: 90000    # daily job — alert after 25 hours
+
+  - pipeline: export_to_warehouse
+    threshold_seconds: 7200     # alert if silent for more than 2 hours
+
+  - pipeline: ml_feature_refresh
+    threshold_seconds: 3600     # hourly feature pipeline
+
+# Usage examples:
+#
+#   Record a heartbeat (run this inside your pipeline script):
+#     pipewatch heartbeat record ingest_raw_events
+#
+#   Check all pipelines against their thresholds:
+#     pipewatch heartbeat check \
+#       ingest_raw_events:300 \
+#       transform_daily_aggregates:90000 \
+#       export_to_warehouse:7200 \
+#       ml_feature_refresh:3600
+#
+#   Non-zero exit code is returned when any pipeline is considered DEAD.
